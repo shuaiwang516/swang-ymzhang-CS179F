@@ -29,3 +29,6 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+/*---------------cs179F------------*/
+SYSCALL(getNumberOfUnusedPage)
+SYSCALL(forkCoW)

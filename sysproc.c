@@ -7,6 +7,21 @@
 #include "mmu.h"
 #include "proc.h"
 
+//------------cs179F-------------//
+int
+sys_getNumberOfUnusedPage(void)
+{
+  return getNumberOfUnusedPage();
+}
+
+//---------------cs179F------------//
+int
+sys_forkCoW(void)
+{
+  return forkCoW();
+}
+
+
 int
 sys_fork(void)
 {

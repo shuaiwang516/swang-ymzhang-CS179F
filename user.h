@@ -2,6 +2,10 @@ struct stat;
 struct rtcdate;
 
 // system calls
+// -----------cs179F------------//
+int getNumberOfUnusedPage(void);
+int forkCoW(void);
+
 int fork(void);
 int exit(void) __attribute__((noreturn));
 int wait(void);

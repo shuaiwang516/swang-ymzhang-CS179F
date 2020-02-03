@@ -20,3 +20,6 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+//----------------cs179F----------------//
+#define SYS_getNumberOfUnusedPage 22
+#define SYS_forkCoW 23

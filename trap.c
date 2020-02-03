@@ -78,6 +78,12 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
 
+  //----------cs179F------------//
+  case T_PGFLT:
+    pgfHandler();
+    break;
+    
+
   //PAGEBREAK: 13
   default:
     if(myproc() == 0 || (tf->cs&3) == 0){

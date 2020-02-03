@@ -21,7 +21,26 @@ struct {
   struct spinlock lock;
   int use_lock;
   struct run *freelist;
+
+//----------cs179F-------------//
+//Add a new varaible called 'numberOfUnusedPage' to trace how many free page.
+  int numberOfUnusedPage;
 } kmem;
+
+
+//-----------cs179F-----------//
+//Get current number of free pages which could be allocated to a process.
+int
+getNumberOfUnusedPage(void)
+{
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+  int number = kmem.numberOfUnusedPage;
+  if(kmem.use_lock)
+    release(&kmem.lock);
+  return number;
+}
+
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
@@ -33,6 +52,8 @@ kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
   kmem.use_lock = 0;
+  //---------cs179F-----------//
+  kmem.numberOfUnusedPage = 0;
   freerange(vstart, vend);
 }
 
@@ -72,6 +93,9 @@ kfree(char *v)
   r = (struct run*)v;
   r->next = kmem.freelist;
   kmem.freelist = r;
+  //-----------cs179F-------------//
+  //release one page to Unused page. Number + 1.
+  kmem.numberOfUnusedPage = kmem.numberOfUnusedPage + 1;
   if(kmem.use_lock)
     release(&kmem.lock);
 }
@@ -87,8 +111,12 @@ kalloc(void)
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = kmem.freelist;
-  if(r)
+  if(r){
     kmem.freelist = r->next;
+    //-----------cs179F-----------//
+    //allocate a page, Number of Unused page minus 1
+    kmem.numberOfUnusedPage = kmem.numberOfUnusedPage - 1;
+  }
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;

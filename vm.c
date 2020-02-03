@@ -6,10 +6,23 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+//------------cs179F----------------//
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
+//----------cs179F------------//
+//New data structure to keep track of the reference count of pages
+struct {
+  struct spinlock lock;
+  //use page physical address as index to track every pages.
+  //PHYSTOP >> 12 is the number of pages that we could have in xv6.
+  //If we have a page which page memroy is x, 
+  //then refCount[x>>12] will index this page. 
+  int refCount[PHYSTOP>>12];   
+} pcounter;
+    
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -131,7 +144,7 @@ setupkvm(void)
                 (uint)k->phys_start, k->perm) < 0) {
       freevm(pgdir);
       return 0;
-    }
+  } 
   return pgdir;
 }
 
@@ -189,6 +202,13 @@ inituvm(pde_t *pgdir, char *init, uint sz)
   mem = kalloc();
   memset(mem, 0, PGSIZE);
   mappages(pgdir, 0, PGSIZE, V2P(mem), PTE_W|PTE_U);
+ 
+  //-------------cs179F--------------//
+  //Initial reference counter when create.
+  acquire(&pcounter.lock);
+  pcounter.refCount[V2P(mem)>>12] = 1;
+  release(&pcounter.lock);
+ 
   memmove(mem, init, sz);
 }
 
@@ -244,6 +264,11 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       kfree(mem);
       return 0;
     }
+    //-------------cs179F--------------//
+    //Initial reference counter when create.
+    acquire(&pcounter.lock);
+    pcounter.refCount[V2P(mem)>>12] = 1;
+    release(&pcounter.lock);
   }
   return newsz;
 }
@@ -271,7 +296,17 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       if(pa == 0)
         panic("kfree");
       char *v = P2V(pa);
-      kfree(v);
+
+      //------------cs179F----------------//
+      //If there is no other processes point to this page
+      //then we can free it
+      //otherwise just decrease the reference counter.
+      acquire(&pcounter.lock);
+      pcounter.refCount[pa>>12]--;
+      if(pcounter.refCount[pa>>12] == 0)
+     	 kfree(v);
+      release(&pcounter.lock);
+
       *pte = 0;
     }
   }
@@ -310,14 +345,14 @@ clearpteu(pde_t *pgdir, char *uva)
   *pte &= ~PTE_U;
 }
 
-// Given a parent process's page table, create a copy
-// of it for a child.
+//Given a parent process's page table, create a copy
+//of it for a child.
 pde_t*
 copyuvm(pde_t *pgdir, uint sz)
 {
   pde_t *d;
-  pte_t *pte;
-  uint pa, i, flags;
+  pte_t *pte; 
+  uint pa, i;// flags;
   char *mem;
 
   if((d = setupkvm()) == 0)
@@ -325,14 +360,17 @@ copyuvm(pde_t *pgdir, uint sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
+    pa = PTE_ADDR(*pte);
+    //flags = PTE_FLAGS(*pte); 
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-    pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
       goto bad;
     memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+   
+    //-------------cs179-------------//
+    //This flag sets : PTE_W|PTE_U to prevent parent flag unwritable.
+    if(mappages(d, (void*)i, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0) {
       kfree(mem);
       goto bad;
     }
@@ -341,6 +379,58 @@ copyuvm(pde_t *pgdir, uint sz)
 
 bad:
   freevm(d);
+  return 0;
+}
+
+// Given a parent process's page table, create a copy
+// of it for a child.
+pde_t*
+copyuvmCoW(pde_t *pgdir, uint sz)
+{
+  pde_t *d;
+  pte_t *pte;
+  uint pa, i, flags;
+  //char *mem;
+
+  if((d = setupkvm()) == 0)
+    return 0;
+  for(i = 0; i < sz; i += PGSIZE){
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
+   
+    //-------------cs179F--------------//
+    /* To implement CoW, we don't create a new page when we fork
+     * We just map to the same page and make it unwritable,
+     * then increase the reference counter.
+    if((mem = kalloc()) == 0)
+      goto bad;
+    memmove(mem, (char*)P2V(pa), PGSIZE);
+    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+      kfree(mem);
+      goto bad;
+    }*/
+
+    //-------------cs179F--------------//
+    *pte &= ~PTE_W;
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0)
+      goto bad;
+    acquire(&pcounter.lock);
+    pcounter.refCount[pa>>12]++;
+    release(&pcounter.lock);
+  }
+  
+  //This must be out of 'for' loop.
+  //Because we have to re-install it when all pages are updated.
+  lcr3(V2P(pgdir));
+  return d;
+
+bad:
+  freevm(d);
+  lcr3(V2P(pgdir));
   return 0;
 }
 
@@ -384,6 +474,82 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   }
   return 0;
 }
+
+//--------------cs179F-----------------//
+//Copy on Write page fault handler
+void
+pgfHandler(void)
+{
+  uint pa;
+  //uint flags;
+  uint va = rcr2();   //rcr2() stores fault page's virtual address
+  pte_t *pte;
+  struct proc *curproc = myproc();
+  char *mem;
+
+  //Search PTE in pgdir
+  if((pte = walkpgdir(curproc->pgdir, (void*)va, 0)) == 0)
+  {
+     panic("pgfHandler: pte should exist");
+     return;
+  }                  
+ 
+  //CoW Page Fault
+  if(!(*pte & PTE_W))
+  {
+    pa = PTE_ADDR(*pte);
+    acquire(&pcounter.lock);
+    //Only one ref to this page
+    if(pcounter.refCount[pa>>12] == 1)
+    {
+      *pte |= PTE_W;
+      release(&pcounter.lock);
+      lcr3(V2P(curproc->pgdir));
+      return;
+    }
+    //No one ref to this page
+    if(pcounter.refCount[pa>>12] <= 0)
+    {
+      release(&pcounter.lock);
+      panic("pgfHandler: page reference counter error. ( <= 0)");
+      return;
+    }
+    //Multiple processes ref to this page
+    if(pcounter.refCount[pa>>12] > 1)
+    {
+      release(&pcounter.lock);
+      //this part is what we deleted in 'copyuvm'
+      if((mem = kalloc()) == 0)
+      {
+        panic("pgfHandler: can not allocate a memory.");
+        return;
+      }
+      memmove(mem, (char*)P2V(pa), PGSIZE);
+      *pte = V2P(mem) | PTE_P | PTE_W | PTE_U;
+      //flag = PTE_FLAGS(*pte);
+
+      /* This will cause remap.
+      if(mappages(curproc->pgdir, (void*)va, PGSIZE, V2P(mem), flag) < 0) {
+        kfreee(mem);
+        panic("pgfHander: cannot map pages");
+        return;
+      }*/
+     
+      acquire(&pcounter.lock);
+      pcounter.refCount[pa>>12]--;
+      pcounter.refCount[V2P(mem)>>12]++;
+      //---------test------------//
+      //cprintf("\nCOW!!\n");
+      //-------------------------//
+      release(&pcounter.lock);
+      lcr3(V2P(curproc->pgdir));
+      return;       
+    } 
+  }
+  panic("Unknown Page Fault");
+  return;
+}
+
 
 //PAGEBREAK!
 // Blank page.

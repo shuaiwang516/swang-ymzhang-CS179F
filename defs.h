@@ -64,6 +64,8 @@ extern uchar    ioapicid;
 void            ioapicinit(void);
 
 // kalloc.c
+// ------------cs179F-------------//
+int 		getNumberOfUnusedPage(void);
 char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
@@ -103,6 +105,9 @@ int             pipewrite(struct pipe*, char*, int);
 
 //PAGEBREAK: 16
 // proc.c
+
+//------------cs179F-----------//
+int		forkCoW(void);
 int             cpuid(void);
 void            exit(void);
 int             fork(void);
@@ -171,6 +176,8 @@ void            uartintr(void);
 void            uartputc(int);
 
 // vm.c
+//---------------cs179F----------------//
+pde_t*		copyuvmCoW(pde_t*, uint);
 void            seginit(void);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);
@@ -185,6 +192,11 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+//------------cs179F------------//
+void 		pgfHandler(void);
+
+
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
