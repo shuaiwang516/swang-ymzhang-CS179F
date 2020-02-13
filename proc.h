@@ -32,6 +32,16 @@ struct context {
   uint eip;
 };
 
+//---------cs179F---------//
+//mmapFile sturct stores info about files that used mmap to mapping
+struct mmapFile {
+  uint fileStartAddr;		// Address of this file's start place. page-aligned
+  uint fileEndAddr;		// Address of this file's end place. page-aligned
+  //char *mapAddr;
+  int fd;			// File descriptor
+  struct file *f;		 		
+};
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -49,6 +59,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+//----------cs179F------------//
+  uint mmapSz;		       // Total size of mmap area that used 
+  struct mmapFile  *mfile[32];	       // files that mapping with mmap()
+  int mfileIndex;	       // Index to mfile array.
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -23,3 +23,4 @@
 //----------------cs179F----------------//
 #define SYS_getNumberOfUnusedPage 22
 #define SYS_forkCoW 23
+#define SYS_mmap   24

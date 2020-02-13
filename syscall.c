@@ -106,6 +106,7 @@ extern int sys_uptime(void);
 //----------cs179F----------//
 extern int sys_getNumberOfUnusedPage(void);
 extern int sys_forkCoW(void);
+extern int sys_mmap(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -131,7 +132,8 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 //---------------cs179F---------------//
 [SYS_getNumberOfUnusedPage]  sys_getNumberOfUnusedPage,
-[SYS_forkCoW]  sys_forkCoW,
+[SYS_forkCoW] sys_forkCoW,
+[SYS_mmap]    sys_mmap,
 };
 
 void

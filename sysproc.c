@@ -6,7 +6,12 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-
+//-----------cs179F-------------//
+#include "spinlock.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
+#include "fcntl.h"
 //------------cs179F-------------//
 int
 sys_getNumberOfUnusedPage(void)
@@ -21,6 +26,28 @@ sys_forkCoW(void)
   return forkCoW();
 }
 
+//--------------cs179F------------//
+int
+sys_mmap(void)
+{
+  int fd;
+  struct file *f;
+  argfd(0,&fd,&f); 
+ /* struct proc *curproc = myproc();
+  uint mPointer = curproc->mmapSz + MMAPBASE;
+  char *startAddr = (char*) mPointer;
+  uint endAddr;
+
+  curproc->mfile[curproc->mfileIndex]->fileStartAddr = startAddr;
+  endAddr = (uint) (curproc->mfile[curproc->mfileIndex]->fileStartAddr + f->ip->size);
+  curproc->mfile[curproc->mfileIndex]->fileEndAddr = (char*) PGROUNDUP(endAddr);
+  curproc->mfile[curproc->mfileIndex]->fd = fd;
+  curproc->mfile[curproc->mfileIndex]->f = f;
+  curproc->mmapSz = curproc->mmapSz + (uint) (curproc->mfile[curproc->mfileIndex]->fileEndAddr - curproc->mfile[curproc->mfileIndex]->fileStartAddr);
+  curproc->mfileIndex++;
+  return mPointer;*/
+  return mmap(fd, f);
+}
 
 int
 sys_fork(void)

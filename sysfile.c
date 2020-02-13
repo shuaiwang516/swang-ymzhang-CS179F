@@ -15,10 +15,13 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+//----------cs179F---------//
+#include "traps.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
-static int
+//static        //-------------cs179--------- delete static to add this into defs.h-----//
+int
 argfd(int n, int *pfd, struct file **pf)
 {
   int fd;

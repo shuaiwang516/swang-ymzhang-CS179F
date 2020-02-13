@@ -32,3 +32,4 @@ SYSCALL(uptime)
 /*---------------cs179F------------*/
 SYSCALL(getNumberOfUnusedPage)
 SYSCALL(forkCoW)
+SYSCALL(mmap)

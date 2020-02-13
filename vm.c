@@ -6,8 +6,13 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
-//------------cs179F----------------//
+//----------------cs179F----------//
 #include "spinlock.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
+
+
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
@@ -15,7 +20,7 @@ pde_t *kpgdir;  // for use in scheduler()
 //----------cs179F------------//
 //New data structure to keep track of the reference count of pages
 struct {
-  struct spinlock lock;
+  struct spinlock plock;
   //use page physical address as index to track every pages.
   //PHYSTOP >> 12 is the number of pages that we could have in xv6.
   //If we have a page which page memroy is x, 
@@ -205,9 +210,9 @@ inituvm(pde_t *pgdir, char *init, uint sz)
  
   //-------------cs179F--------------//
   //Initial reference counter when create.
-  acquire(&pcounter.lock);
+  acquire(&pcounter.plock);
   pcounter.refCount[V2P(mem)>>12] = 1;
-  release(&pcounter.lock);
+  release(&pcounter.plock);
  
   memmove(mem, init, sz);
 }
@@ -266,9 +271,9 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     }
     //-------------cs179F--------------//
     //Initial reference counter when create.
-    acquire(&pcounter.lock);
+    acquire(&pcounter.plock);
     pcounter.refCount[V2P(mem)>>12] = 1;
-    release(&pcounter.lock);
+    release(&pcounter.plock);
   }
   return newsz;
 }
@@ -301,11 +306,11 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       //If there is no other processes point to this page
       //then we can free it
       //otherwise just decrease the reference counter.
-      acquire(&pcounter.lock);
+      acquire(&pcounter.plock);
       pcounter.refCount[pa>>12]--;
       if(pcounter.refCount[pa>>12] == 0)
      	 kfree(v);
-      release(&pcounter.lock);
+      release(&pcounter.plock);
 
       *pte = 0;
     }
@@ -382,6 +387,7 @@ bad:
   return 0;
 }
 
+//-------------cs179F-----------------//
 // Given a parent process's page table, create a copy
 // of it for a child.
 pde_t*
@@ -418,9 +424,9 @@ copyuvmCoW(pde_t *pgdir, uint sz)
     flags = PTE_FLAGS(*pte);
     if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0)
       goto bad;
-    acquire(&pcounter.lock);
+    acquire(&pcounter.plock);
     pcounter.refCount[pa>>12]++;
-    release(&pcounter.lock);
+    release(&pcounter.plock);
   }
   
   //This must be out of 'for' loop.
@@ -484,40 +490,78 @@ pgfHandler(void)
   //uint flags;
   uint va = rcr2();   //rcr2() stores fault page's virtual address
   pte_t *pte;
+  pde_t *pgdir;
   struct proc *curproc = myproc();
   char *mem;
+  int i = 0;
+  uint a;
 
   //Search PTE in pgdir
+  //So if PTE not exist means we may caused by mmap()
   if((pte = walkpgdir(curproc->pgdir, (void*)va, 0)) == 0)
   {
-     panic("pgfHandler: pte should exist");
+     //panic("pgfHandler: pte should exist");
+     cprintf("Catch a mmap page fault\n");
+     for(i = 0; i < curproc->mfileIndex; i++){
+       if(va >= (uint)curproc->mfile[i]->fileStartAddr && va < (uint)curproc->mfile[i]->fileEndAddr){
+         if( va >= KERNBASE)
+	   panic("mmap() tries to access kernal region!!");
+         a = PGROUNDUP(va);
+	// for(; a < curproc->mfile[i]->fileEndAddr; a += PGSIZE){
+	   mem = kalloc();
+	   if(mem == 0){
+	     cprintf("allocuvm out of memory\n");
+	     kfree(mem);
+	     return;
+	   }
+           memset(mem, 0, PGSIZE);    
+           pgdir = curproc->pgdir;
+	   if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+	     cprintf("allocuvm out of memory (2)\n");
+	     kfree(mem);
+	     return;
+	   }
+	   readi(curproc->mfile[i]->f->ip, (char*)a, a - (uint)curproc->mfile[i]->fileStartAddr, PGSIZE);
+	   //cprintf("for test: uint form startAddr: %d\n",(uint)curproc->mfile[i]->fileStartAddr);
+           acquire(&pcounter.plock);
+	   pcounter.refCount[V2P(mem)>>12] = 1;
+	   //cprintf("for test: uint form startAddr:set counter to 1, address = %d\n",V2P(mem)>>12);
+	   release(&pcounter.plock);
+	   return;
+        // }
+       }  
+     }
+     panic("pgfHandler: pte should exist or mmap should be in range");    
      return;
   }                  
- 
+  
+
   //CoW Page Fault
   if(!(*pte & PTE_W))
   {
+    cprintf("Catch a CoW page fault!");
     pa = PTE_ADDR(*pte);
-    acquire(&pcounter.lock);
+    acquire(&pcounter.plock);
     //Only one ref to this page
     if(pcounter.refCount[pa>>12] == 1)
     {
       *pte |= PTE_W;
-      release(&pcounter.lock);
+      release(&pcounter.plock);
       lcr3(V2P(curproc->pgdir));
       return;
     }
     //No one ref to this page
     if(pcounter.refCount[pa>>12] <= 0)
     {
-      release(&pcounter.lock);
+      release(&pcounter.plock);
+      //cprintf("pgfHandler: address = %d ",pa>>12);
       panic("pgfHandler: page reference counter error. ( <= 0)");
       return;
     }
     //Multiple processes ref to this page
     if(pcounter.refCount[pa>>12] > 1)
     {
-      release(&pcounter.lock);
+      release(&pcounter.plock);
       //this part is what we deleted in 'copyuvm'
       if((mem = kalloc()) == 0)
       {
@@ -535,13 +579,13 @@ pgfHandler(void)
         return;
       }*/
      
-      acquire(&pcounter.lock);
+      acquire(&pcounter.plock);
       pcounter.refCount[pa>>12]--;
       pcounter.refCount[V2P(mem)>>12]++;
       //---------test------------//
       //cprintf("\nCOW!!\n");
       //-------------------------//
-      release(&pcounter.lock);
+      release(&pcounter.plock);
       lcr3(V2P(curproc->pgdir));
       return;       
     } 
@@ -550,6 +594,24 @@ pgfHandler(void)
   return;
 }
 
+//-----------cs179F-------------//
+int
+mmap(int fd, struct file *f){
+  struct proc *curproc = myproc();
+  uint mPointer = curproc->mmapSz + MMAPBASE; 
+  //char *startAddr = (char*) mPointer;
+  uint startAddr = mPointer;
+  uint endAddr;
+
+  curproc->mfile[curproc->mfileIndex]->fileStartAddr = startAddr;
+  endAddr = (uint) (curproc->mfile[curproc->mfileIndex]->fileStartAddr + f->ip->size);
+  curproc->mfile[curproc->mfileIndex]->fileEndAddr =  PGROUNDUP(endAddr);
+  curproc->mfile[curproc->mfileIndex]->fd = fd;
+  curproc->mfile[curproc->mfileIndex]->f = f;
+  curproc->mmapSz = curproc->mmapSz + (uint) (curproc->mfile[curproc->mfileIndex]->fileEndAddr - curproc->mfile[curproc->mfileIndex]->fileStartAddr);
+  curproc->mfileIndex++;
+  return mPointer;
+}
 
 //PAGEBREAK!
 // Blank page.

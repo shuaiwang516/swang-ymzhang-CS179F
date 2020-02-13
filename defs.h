@@ -106,8 +106,9 @@ int             pipewrite(struct pipe*, char*, int);
 //PAGEBREAK: 16
 // proc.c
 
-//------------cs179F-----------//
+//------------cs179F--------------//
 int		forkCoW(void);
+
 int             cpuid(void);
 void            exit(void);
 int             fork(void);
@@ -193,9 +194,12 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 //------------cs179F------------//
+int             mmap(int fd,struct file *f);
 void 		pgfHandler(void);
 
-
+//-----------cs179F------------//
+//sysfile.c
+int		argfd(int n, int *pfd, struct file **pf);
 
 
 // number of elements in fixed-size array

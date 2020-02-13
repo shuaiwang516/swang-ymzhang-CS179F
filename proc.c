@@ -89,6 +89,10 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+//-----------cs179F------------//
+  p->mfileIndex = 0;
+  p->mmapSz = 0;  
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
