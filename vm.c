@@ -523,8 +523,8 @@ pgfHandler(void)
 	  
            memset(mem, 0, PGSIZE);    
           // pgdir = curproc->pgdir;
-	   release(&pcounter.plock);
-      printf("pgfHandler: address = %u ",va);
+	   
+     	  // printf("pgfHandler: address = %u ",va);
 	  /* if(mappages(pgdir, (char*)a , PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
 	     cprintf("allocuvm out of memory (2)\n");
 	     kfree(mem);
