@@ -63,6 +63,7 @@ struct proc {
   uint mmapSz;		       // Total size of mmap area that used 
   struct mmapFile  *mfile[32];	       // files that mapping with mmap()
   int mfileIndex;	       // Index to mfile array.
+  uint nextmmapAddr;	       // Index to the next mmap page virutal address
 };
 
 // Process memory is laid out contiguously, low addresses first:

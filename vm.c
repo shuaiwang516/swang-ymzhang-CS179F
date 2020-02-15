@@ -490,23 +490,29 @@ pgfHandler(void)
   //uint flags;
   uint va = rcr2();   //rcr2() stores fault page's virtual address
   pte_t *pte;
-  pde_t *pgdir;
+  //pde_t *pgdir;
   struct proc *curproc = myproc();
   char *mem;
   int i = 0;
   uint a;
 
+  uint t = 1073745920;
+  pte_t *pte2 = walkpgdir(curproc->pgdir, (void*)t, 0);
+  cprintf("pte2 = %d\n",pte2);
+  
+  pte = walkpgdir(curproc->pgdir, (void*)va, 0);
+  cprintf("for test, in pgf pte = %d\n",pte);
   //Search PTE in pgdir
   //So if PTE not exist means we may caused by mmap()
-  if((pte = walkpgdir(curproc->pgdir, (void*)va, 0)) == 0)
+  if(pte == 0)
   {
      //panic("pgfHandler: pte should exist");
      cprintf("Catch a mmap page fault\n");
      for(i = 0; i < curproc->mfileIndex; i++){
-       if(va >= (uint)curproc->mfile[i]->fileStartAddr && va < (uint)curproc->mfile[i]->fileEndAddr){
+       if(va >= (uint)curproc->mfile[i]->fileStartAddr && va <= (uint)curproc->mfile[i]->fileEndAddr){
          if( va >= KERNBASE)
 	   panic("mmap() tries to access kernal region!!");
-         a = PGROUNDUP(va);
+         a = PGROUNDDOWN(va);
 	// for(; a < curproc->mfile[i]->fileEndAddr; a += PGSIZE){
 	   mem = kalloc();
 	   if(mem == 0){
@@ -514,32 +520,58 @@ pgfHandler(void)
 	     kfree(mem);
 	     return;
 	   }
+	  
            memset(mem, 0, PGSIZE);    
-           pgdir = curproc->pgdir;
-	   if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+          // pgdir = curproc->pgdir;
+	   release(&pcounter.plock);
+      printf("pgfHandler: address = %u ",va);
+	  /* if(mappages(pgdir, (char*)a , PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
 	     cprintf("allocuvm out of memory (2)\n");
 	     kfree(mem);
 	     return;
-	   }
+	   }*/
+ 
+           //=============================================bug==========================================//
+            pte = walkpgdir(curproc->pgdir,(char*) a, 1);
+            *pte = V2P(mem) | PTE_W | PTE_U | PTE_P;
+            pte2 = walkpgdir(curproc->pgdir, (void*)t, 0);
+	    cprintf("pte = %d\n",pte);
+            cprintf("pte2 = %d\n",pte2);
+	   //==============================================bug==========================================//
+
+	  /*
+	   //----my own mappages---//
+	  
+	   pte = walkpgdir(pgdir,(char*)a,1);
+           
+           if(*pte && PTE_P)
+	     panic("remap");
+           *pte = V2P(mem) | PTE_W | PTE_U | PTE_P;
+	   //----------------------//
+          */
+
+           cprintf("for test: offset = %d\n",a - curproc->mfile[i]->fileStartAddr);
 	   readi(curproc->mfile[i]->f->ip, (char*)a, a - (uint)curproc->mfile[i]->fileStartAddr, PGSIZE);
 	   //cprintf("for test: uint form startAddr: %d\n",(uint)curproc->mfile[i]->fileStartAddr);
            acquire(&pcounter.plock);
-	   pcounter.refCount[V2P(mem)>>12] = 1;
+	   pcounter.refCount[a >>12] = 1;
 	   //cprintf("for test: uint form startAddr:set counter to 1, address = %d\n",V2P(mem)>>12);
 	   release(&pcounter.plock);
-	   return;
-        // }
-       }  
-     }
+           lcr3(V2P(curproc->pgdir)); 
+           return;
+        }
+     }  
      panic("pgfHandler: pte should exist or mmap should be in range");    
      return;
   }                  
   
 
   //CoW Page Fault
-  if(!(*pte & PTE_W))
+  else if((pte != 0) && (!(*pte & PTE_W)))
   {
-    cprintf("Catch a CoW page fault!");
+    cprintf("In cow pte = %d\n",pte);
+    cprintf("Catch a CoW page fault from va = %d\n",va);
+    cprintf("pte flags = %d\n",*pte & PTE_W & PTE_U & PTE_P);
     pa = PTE_ADDR(*pte);
     acquire(&pcounter.plock);
     //Only one ref to this page
@@ -604,12 +636,17 @@ mmap(int fd, struct file *f){
   uint endAddr;
 
   curproc->mfile[curproc->mfileIndex]->fileStartAddr = startAddr;
-  endAddr = (uint) (curproc->mfile[curproc->mfileIndex]->fileStartAddr + f->ip->size);
-  curproc->mfile[curproc->mfileIndex]->fileEndAddr =  PGROUNDUP(endAddr);
+  endAddr = curproc->mfile[curproc->mfileIndex]->fileStartAddr + f->ip->size;
+  curproc->mfile[curproc->mfileIndex]->fileEndAddr =  PGROUNDUP(endAddr) - 1;
   curproc->mfile[curproc->mfileIndex]->fd = fd;
   curproc->mfile[curproc->mfileIndex]->f = f;
-  curproc->mmapSz = curproc->mmapSz + (uint) (curproc->mfile[curproc->mfileIndex]->fileEndAddr - curproc->mfile[curproc->mfileIndex]->fileStartAddr);
+  curproc->mmapSz = curproc->mmapSz + PGROUNDUP(curproc->mfile[curproc->mfileIndex]->fileEndAddr - curproc->mfile[curproc->mfileIndex]->fileStartAddr);
   curproc->mfileIndex++;
+  
+  cprintf("for test, filesize = %d\n",f->ip->size);
+  cprintf("for test, startAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileStartAddr);
+  cprintf("for test, endAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileEndAddr);
+  cprintf("for test, mmap size = %d\n",curproc->mmapSz);
   return mPointer;
 }
 

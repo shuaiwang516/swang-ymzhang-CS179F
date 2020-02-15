@@ -92,7 +92,7 @@ found:
 //-----------cs179F------------//
   p->mfileIndex = 0;
   p->mmapSz = 0;  
-
+  p->nextmmapAddr = MMAPBASE;
   release(&ptable.lock);
 
   // Allocate kernel stack.

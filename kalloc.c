@@ -116,6 +116,7 @@ kalloc(void)
     //-----------cs179F-----------//
     //allocate a page, Number of Unused page minus 1
     kmem.numberOfUnusedPage = kmem.numberOfUnusedPage - 1;
+    //cprintf("kalloc!\n");
   }
   if(kmem.use_lock)
     release(&kmem.lock);
