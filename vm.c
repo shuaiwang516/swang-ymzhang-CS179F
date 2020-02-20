@@ -496,18 +496,18 @@ pgfHandler(void)
   int i = 0;
   uint a;
 
-  uint t = 1073745920;
-  pte_t *pte2 = walkpgdir(curproc->pgdir, (void*)t, 0);
-  cprintf("pte2 = %d\n",pte2);
+  //uint t = 1073745920;
+  //pte_t *pte2 = walkpgdir(curproc->pgdir, (void*)t, 0);
+  //cprintf("pte2 = %d\n",pte2);
   
   pte = walkpgdir(curproc->pgdir, (void*)va, 0);
-  cprintf("for test, in pgf pte = %d\n",pte);
+  //cprintf("for test, in pgf pte = %d\n",pte);
   //Search PTE in pgdir
   //So if PTE not exist means we may caused by mmap()
-  if(pte == 0)
+  if(!pte || *pte == 0)
   {
      //panic("pgfHandler: pte should exist");
-     cprintf("Catch a mmap page fault\n");
+    // cprintf("Catch a mmap page fault\n");
      for(i = 0; i < curproc->mfileIndex; i++){
        if(va >= (uint)curproc->mfile[i]->fileStartAddr && va <= (uint)curproc->mfile[i]->fileEndAddr){
          if( va >= KERNBASE)
@@ -534,9 +534,9 @@ pgfHandler(void)
            //=============================================bug==========================================//
             pte = walkpgdir(curproc->pgdir,(char*) a, 1);
             *pte = V2P(mem) | PTE_W | PTE_U | PTE_P;
-            pte2 = walkpgdir(curproc->pgdir, (void*)t, 0);
-	    cprintf("pte = %d\n",pte);
-            cprintf("pte2 = %d\n",pte2);
+           // pte2 = walkpgdir(curproc->pgdir, (void*)t, 0);
+	   // cprintf("pte = %d\n",pte);
+           // cprintf("pte2 = %d\n",pte2);
 	   //==============================================bug==========================================//
 
 	  /*
@@ -550,7 +550,7 @@ pgfHandler(void)
 	   //----------------------//
           */
 
-           cprintf("for test: offset = %d\n",a - curproc->mfile[i]->fileStartAddr);
+          // cprintf("for test: offset = %d\n",a - curproc->mfile[i]->fileStartAddr);
 	   readi(curproc->mfile[i]->f->ip, (char*)a, a - (uint)curproc->mfile[i]->fileStartAddr, PGSIZE);
 	   //cprintf("for test: uint form startAddr: %d\n",(uint)curproc->mfile[i]->fileStartAddr);
            acquire(&pcounter.plock);
@@ -561,17 +561,19 @@ pgfHandler(void)
            return;
         }
      }  
-     panic("pgfHandler: pte should exist or mmap should be in range");    
+     //panic("pgfHandler: pte should exist or mmap should be in range");    
+     cprintf("pgfHandler: pte should exist or mmap should be in range\n");
+     kill(curproc->pid);
      return;
   }                  
   
 
   //CoW Page Fault
-  else if((pte != 0) && (!(*pte & PTE_W)))
+  else if(pte && (!(*pte & PTE_W)))
   {
-    cprintf("In cow pte = %d\n",pte);
-    cprintf("Catch a CoW page fault from va = %d\n",va);
-    cprintf("pte flags = %d\n",*pte & PTE_W & PTE_U & PTE_P);
+    //cprintf("In cow pte = %d\n",pte);
+   // cprintf("Catch a CoW page fault from va = %d\n",va);
+    //cprintf("pte flags = %d\n",*pte & PTE_W & PTE_U & PTE_P);
     pa = PTE_ADDR(*pte);
     acquire(&pcounter.plock);
     //Only one ref to this page
@@ -587,7 +589,9 @@ pgfHandler(void)
     {
       release(&pcounter.plock);
       //cprintf("pgfHandler: address = %d ",pa>>12);
-      panic("pgfHandler: page reference counter error. ( <= 0)");
+      //panic("pgfHandler: page reference counter error. ( <= 0)");
+      cprintf("pgfHandler: page reference counter error. ( <= 0)\n");
+      kill(curproc->pid);
       return;
     }
     //Multiple processes ref to this page
@@ -597,7 +601,9 @@ pgfHandler(void)
       //this part is what we deleted in 'copyuvm'
       if((mem = kalloc()) == 0)
       {
-        panic("pgfHandler: can not allocate a memory.");
+        //panic("pgfHandler: can not allocate a memory.");
+        cprintf("pgfHandler: can not allocate a memory.\n");
+        kill(curproc->pid);
         return;
       }
       memmove(mem, (char*)P2V(pa), PGSIZE);
@@ -622,7 +628,9 @@ pgfHandler(void)
       return;       
     } 
   }
-  panic("Unknown Page Fault");
+  //panic("Unknown Page Fault");
+  cprintf("Unknown Page Fault\n");
+  kill(curproc->pid);
   return;
 }
 
@@ -643,10 +651,10 @@ mmap(int fd, struct file *f){
   curproc->mmapSz = curproc->mmapSz + PGROUNDUP(curproc->mfile[curproc->mfileIndex]->fileEndAddr - curproc->mfile[curproc->mfileIndex]->fileStartAddr);
   curproc->mfileIndex++;
   
-  cprintf("for test, filesize = %d\n",f->ip->size);
-  cprintf("for test, startAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileStartAddr);
-  cprintf("for test, endAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileEndAddr);
-  cprintf("for test, mmap size = %d\n",curproc->mmapSz);
+ // cprintf("for test, filesize = %d\n",f->ip->size);
+ // cprintf("for test, startAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileStartAddr);
+ // cprintf("for test, endAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileEndAddr);
+ // cprintf("for test, mmap size = %d\n",curproc->mmapSz);
   return mPointer;
 }
 

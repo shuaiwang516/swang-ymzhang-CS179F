@@ -184,8 +184,8 @@ UPROGS=\
 	_testgetPageNumber\
 	_mmaptest\
 
-fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+fs.img: mkfs README CS179F1 CS179F2 $(UPROGS)
+	./mkfs fs.img README CS179F1 CS179F2 $(UPROGS)
 
 -include *.d
 
