@@ -64,6 +64,8 @@ struct proc {
   struct mmapFile  *mfile[32];	       // files that mapping with mmap()
   int mfileIndex;	       // Index to mfile array.
   uint nextmmapAddr;	       // Index to the next mmap page virutal address
+  int stackpos;                // Store the random position of the user stack
+  int stackpg;                 // Store the number of stack pages of the process
 };
 
 // Process memory is laid out contiguously, low addresses first:

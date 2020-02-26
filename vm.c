@@ -380,6 +380,23 @@ copyuvm(pde_t *pgdir, uint sz)
       goto bad;
     }
   }
+
+  //-----------cs179F  ASLR-----------//
+  for(i = myproc()->stackpos - myproc()->stackpg*PGSIZE; i < myproc()->stackpos; i += PGSIZE){
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
+    pa = PTE_ADDR(*pte);
+    if((mem = kalloc()) == 0)
+      goto bad;
+    memmove(mem, (char*)P2V(pa), PGSIZE);
+    if(mappages(d, (void*)i, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+      kfree(mem);
+      goto bad;
+    }
+  }
+
   return d;
 
 bad:
@@ -428,6 +445,21 @@ copyuvmCoW(pde_t *pgdir, uint sz)
     pcounter.refCount[pa>>12]++;
     release(&pcounter.plock);
   }
+
+  for(i = myproc()->stackpos - myproc()->stackpg*PGSIZE; i < myproc()->stackpos; i += PGSIZE){
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
+    *pte &= ~PTE_W;
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0)
+      goto bad;
+    acquire(&pcounter.plock);
+    pcounter.refCount[pa>>12]++;
+    release(&pcounter.plock);
+  }   
   
   //This must be out of 'for' loop.
   //Because we have to re-install it when all pages are updated.
@@ -495,6 +527,7 @@ pgfHandler(void)
   char *mem;
   int i = 0;
   uint a;
+  int sp;
 
   //uint t = 1073745920;
   //pte_t *pte2 = walkpgdir(curproc->pgdir, (void*)t, 0);
@@ -506,6 +539,13 @@ pgfHandler(void)
   //So if PTE not exist means we may caused by mmap()
   if(!pte || *pte == 0)
   {
+    if(va < MMAPBASE){
+       sp = curproc->stackpos - curproc->stackpg*PGSIZE;
+       if(allocuvm(curproc->pgdir, sp - PGSIZE, sp) == 0)
+         panic("No space for the growing stack!");
+       curproc->stackpg++;
+       return;
+    }
      //panic("pgfHandler: pte should exist");
     // cprintf("Catch a mmap page fault\n");
      for(i = 0; i < curproc->mfileIndex; i++){
