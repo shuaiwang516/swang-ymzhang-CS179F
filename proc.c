@@ -161,7 +161,7 @@ userinit(void)
 
 // Grow current process's memory by n bytes.
 // Return 0 on success, -1 on failure.
-int
+/*int
 growproc(int n)
 {
   uint sz;
@@ -176,6 +176,27 @@ growproc(int n)
       return -1;
   }
   curproc->sz = sz;
+  switchuvm(curproc);
+  return 0;
+}*/
+
+//---------------cs179F-------------------//
+int
+growproc(int n)
+{
+  uint codee;
+  struct proc *curproc = myproc();
+
+  cprintf("hello!\n");
+  codee = curproc->codee;
+  if(n > 0){
+    if((codee = allocuvm(curproc->pgdir, codee, codee + n)) == 0)
+      return -1;
+  } else if(n < 0){
+    if((codee = deallocuvm(curproc->pgdir, codee, codee + n)) == 0)
+      return -1;
+  }
+  curproc->codee = codee;
   switchuvm(curproc);
   return 0;
 }
@@ -196,7 +217,7 @@ fork(void)
   }
 
   // Copy process state from proc.
-  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+  if((np->pgdir = copyuvm(curproc->pgdir, curproc->codes, curproc->codee)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
@@ -205,6 +226,9 @@ fork(void)
   np->sz = curproc->sz;
   //----------------cs179F----------------//
   np->stackpos = curproc->stackpos;
+  np->stackpg = curproc->stackpg;
+  np->codes = curproc->codes;
+  np->codee = curproc->codee;
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
@@ -243,13 +267,17 @@ forkCoW(void)
   }
 
   //Use copyuvmCow instead of copyuvm
-  if((np->pgdir = copyuvmCoW(curproc->pgdir, curproc->sz)) == 0){
+  if((np->pgdir = copyuvmCoW(curproc->pgdir, curproc->codes, curproc->codee)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
     return -1;
   }
   np->sz = curproc->sz;
+  np->stackpos = curproc->sz;
+  np->stackpg = curproc->stackpg;
+  np->codes = curproc->codes;
+  np->codee = curproc->codee;
   np->parent = curproc;
   *np->tf = *curproc->tf;
 

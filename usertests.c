@@ -1546,7 +1546,7 @@ sbrktest(void)
   printf(stdout, "sbrk test OK\n");
 }
 
-void
+/*void
 validateint(int *p)
 {
   int res;
@@ -1587,7 +1587,7 @@ validatetest(void)
   }
 
   printf(stdout, "validate ok\n");
-}
+}*/
 
 // does unintialized data start out zero?
 char uninit[10000];
@@ -1768,7 +1768,7 @@ main(int argc, char *argv[])
   bigargtest();
   bsstest();
   sbrktest();
-  validatetest();
+  //validatetest();
 
   opentest();
   writetest();

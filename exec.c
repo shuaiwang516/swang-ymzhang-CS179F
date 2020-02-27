@@ -25,6 +25,7 @@ exec(char *path, char **argv)
   //----------------cs179F----------------//
   int stackpos;
   struct rtcdate *r = 0;
+  int base, codes;
 
   begin_op();
 
@@ -46,7 +47,13 @@ exec(char *path, char **argv)
     goto bad;
 
   // Load program into memory.
-  sz = 0;
+  //------------------cs179F--------------//
+  //sz = 0;
+  cmostime(r);
+  srand(r->second);
+  codes = rand()*0x8001;
+  codes = PGROUNDUP(codes);
+  curproc->codes = codes;
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
@@ -58,16 +65,20 @@ exec(char *path, char **argv)
       goto bad;
     //----------cs179F note-----------//
     //In this allocuvm, xv6 set page to PTE_W|PTE_U
-    if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
+    //if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
+    //  goto bad;
+    if((base = allocuvm(pgdir, codes, codes + ph.vaddr + ph.memsz)) == 0)
       goto bad;
     if(ph.vaddr % PGSIZE != 0)
       goto bad;
-    if(loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
+    if(loaduvm(pgdir, (char*)(codes + ph.vaddr), ip, ph.off, ph.filesz) < 0)
       goto bad;
+    codes = base;
   }
   iunlockput(ip);
   end_op();
   ip = 0;
+  curproc->codee = codes;
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
@@ -78,16 +89,21 @@ exec(char *path, char **argv)
   sp = sz;*/
 
   //--------------------CS179F--------------------//
-  cmostime(r);
-  srand(r->second);
+  //cmostime(r);
+  //srand(r->second);
   // RAND_MAX = 0x7fff, so we multiple 0x8001 to increase it to 0x3fffffff under MMAPBASE
   stackpos = rand()*0x8001;
-  while(stackpos <= sz + 2*PGSIZE)
+  while(stackpos >= (curproc->codes - PGSIZE) && stackpos <= curproc->codee)
     stackpos = rand()*0x8001;
   stackpos = PGROUNDUP(stackpos);
   if((sp = allocuvm(pgdir, stackpos - PGSIZE, stackpos)) == 0)
     goto bad;
   //cprintf("%x\n", sp);
+
+  sz = rand()*0x8001;
+  while((sz >= curproc->codes && sz <= curproc->codee + PGSIZE) || (sz >= stackpos - PGSIZE && sz <= stackpos + PGSIZE))
+    sz = rand()*0x8001;
+  sz = PGROUNDDOWN(sz);
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {

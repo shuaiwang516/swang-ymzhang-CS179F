@@ -66,6 +66,8 @@ struct proc {
   uint nextmmapAddr;	       // Index to the next mmap page virutal address
   int stackpos;                // Store the random position of the user stack
   int stackpg;                 // Store the number of stack pages of the process
+  int codes;                   // Store the beginning of the text+data
+  int codee;                   // Store the end of the text+data
 };
 
 // Process memory is laid out contiguously, low addresses first:
