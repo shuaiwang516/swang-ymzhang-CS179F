@@ -41,6 +41,7 @@ fetchstr(uint addr, char **pp)
   //  return -1;
   *pp = (char*)addr;
   //ep = (char*)curproc->sz;
+  //------------------------------cs179F---------------------//
   ep = (char*)(curproc->stackpos > curproc->codee ? curproc->stackpos : curproc->codee);
   for(s = *pp; s < ep; s++){
     if(*s == 0)

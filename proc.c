@@ -187,7 +187,6 @@ growproc(int n)
   uint codee;
   struct proc *curproc = myproc();
 
-  cprintf("hello!\n");
   codee = curproc->codee;
   if(n > 0){
     if((codee = allocuvm(curproc->pgdir, codee, codee + n)) == 0)

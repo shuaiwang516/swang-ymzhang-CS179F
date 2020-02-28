@@ -25,7 +25,7 @@ exec(char *path, char **argv)
   //----------------cs179F----------------//
   int stackpos;
   struct rtcdate *r = 0;
-  int base, codes;
+  int base, codes; 
 
   begin_op();
 
@@ -52,7 +52,7 @@ exec(char *path, char **argv)
   cmostime(r);
   srand(r->second);
   codes = rand()*0x8001;
-  codes = PGROUNDUP(codes);
+  codes = PGROUNDDOWN(codes);
   curproc->codes = codes;
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
@@ -98,6 +98,7 @@ exec(char *path, char **argv)
   stackpos = PGROUNDUP(stackpos);
   if((sp = allocuvm(pgdir, stackpos - PGSIZE, stackpos)) == 0)
     goto bad;
+  //clearpteu(pgdir, (char*)stackpos - 2*PGSIZE);
   //cprintf("%x\n", sp);
 
   sz = rand()*0x8001;
@@ -134,13 +135,17 @@ exec(char *path, char **argv)
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
   curproc->sz = sz;
-  curproc->tf->eip = elf.entry;  // main
+  curproc->tf->eip = curproc->codes;  // main
   curproc->tf->esp = sp;
   //---------------cs179F-----------//
   curproc->stackpos = stackpos;
   curproc->stackpg = 1;
   switchuvm(curproc);
   freevm(oldpgdir);
+  //cprintf("\nmemlayout:\n");
+  //cprintf("text+data: from 0x%x to 0x%x\n", curproc->codes,  curproc->codee);
+  //cprintf("stack pointer: 0x%x\n", curproc->stackpos);
+  //cprintf("heap pointer: 0x%x\n\n", curproc->sz);
   return 0;
 
  bad:

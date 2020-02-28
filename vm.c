@@ -539,15 +539,21 @@ pgfHandler(void)
   //So if PTE not exist means we may caused by mmap()
   if(!pte || *pte == 0)
   {
-    if(va < MMAPBASE){
-       sp = curproc->stackpos - curproc->stackpg*PGSIZE;
-       cprintf("%d\n", va);
-       if(va >= sp - PGSIZE && va <= PGSIZE)
+    sp = curproc->stackpos - (curproc->stackpg * PGSIZE);
+    if(va < MMAPBASE && va >= sp - PGSIZE && va <= sp){
+       cprintf("va1: %d\n", va);
+       //sp = curproc->stackpos - (curproc->stackpg * PGSIZE);
+       //cprintf("sp: %d\n", sp);
+       //if(va >= sp - PGSIZE && va <= sp){
+         cprintf("sp2: %d\n", sp);
+         cprintf("va2: %d\n", va);
          if(allocuvm(curproc->pgdir, sp - PGSIZE, sp) == 0)
            panic("No space for the growing stack!");
-       curproc->stackpg++;
-       return;
-    }
+         else
+	   curproc->stackpg++;
+        //}
+        return;
+     }
      //panic("pgfHandler: pte should exist");
     // cprintf("Catch a mmap page fault\n");
      for(i = 0; i < curproc->mfileIndex; i++){
