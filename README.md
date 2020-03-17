@@ -10,21 +10,7 @@ Implemented virtual memory on XV6.<br>
 
  ## Setup and Compilation
  
- ### Setup on your own machine
- 
- Firstly use Git to clone all the code to your own machine:
- ```
- $ git clone https://github.com/ws7474741/swang-ymzhang-CS179F.git
- $ cd swang-ymzhang-CS179F 
- ```
- Now, you are in the directory of the project. Use qemu to boot the xv6 and do all the tests on it.
- To compile the project and boot the XV6, run the command:
-```
-$ make qemu-nox
-```
- Now, XV6 has booted. You can do all the tests on it.
- 
- ### Setup a container on [Docker](https://hub.docker.com/r/ws7474741/ucr-cs179f)
+  ### Setup a container on [Docker](https://hub.docker.com/r/ws7474741/ucr-cs179f) (Recommand)
 
 Pull the Docker image
 ```
@@ -40,6 +26,23 @@ $ cd ~/swang-ymzhang-CS179F
 ```
 $ make qemu-nox
 ```
+ Now, XV6 has booted. You can do all the tests on it.
+ 
+ ### Setup on your own machine (Not Recommand)
+ Firstly following [here](https://www.cs.ucr.edu/~csong/cs153/19f/xv6.html#getting-started-vm) to setup your own machine.
+ 
+ Secondly use Git to clone all the code to your own machine: 
+ ```
+ $ git clone https://github.com/ws7474741/swang-ymzhang-CS179F.git
+ $ cd swang-ymzhang-CS179F 
+ ```
+ Now, you are in the directory of the project. Use qemu to boot the xv6 and do all the tests on it.
+ To compile the project and boot the XV6, run the command:
+```
+$ make qemu-nox
+```
+ Now, XV6 has booted. You can do all the tests on it.
+ 
 
  ## Project Content
  
