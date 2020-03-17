@@ -14,13 +14,13 @@ Implemented virtual memory on XV6.<br>
  
  Firstly use Git to clone all the code to your own machine:
  ```
- git clone https://github.com/ws7474741/swang-ymzhang-CS179F.git
- cd swang-ymzhang-CS179F 
+ $ git clone https://github.com/ws7474741/swang-ymzhang-CS179F.git
+ $ cd swang-ymzhang-CS179F 
  ```
  Now, you are in the directory of the project. Use qemu to boot the xv6 and do all the tests on it.
  To compile the project and boot the XV6, run the command:
 ```
-make qemu-nox
+$ make qemu-nox
 ```
  Now, XV6 has booted. You can do all the tests on it.
  
@@ -28,12 +28,12 @@ make qemu-nox
 
 Pull the Docker image
 ```
-docker pull ws7474741/ucr-cs179f
+$ docker pull ws7474741/ucr-cs179f
 ```
 Run your container
 ```
-docker run -it ws7474741/cs179f
-cd ~/swang-ymzhang-CS179F 
+$ docker run -it ws7474741/cs179f
+$ cd ~/swang-ymzhang-CS179F 
 ```
 Now, the remaining steps are the same with the content above
 
@@ -51,7 +51,7 @@ Now, the remaining steps are the same with the content above
  
  To test Copy-on-Write, run the command:
  ```
-cowtest
+$ cowtest
  ```
  
   ### mmap
@@ -62,7 +62,7 @@ cowtest
   
   To test mmap, run the command:
   ```
- mmaptest
+ $ mmaptest
   ```
  
   ### ASLR
@@ -78,7 +78,7 @@ cowtest
   
   To test ASLR, run the command:
   ```
- aslrtest <# an integer number >
+ $ aslrtest <# an integer number >
   ```
  The test program will not only show the random position of the stack and the heap but also
  show the sum from 1 to the number you input. The number of stack pages will also be shown after that.
