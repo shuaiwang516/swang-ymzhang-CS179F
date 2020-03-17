@@ -35,7 +35,11 @@ Run your container
 $ docker run -it ws7474741/cs179f
 $ cd ~/swang-ymzhang-CS179F 
 ```
-Now, the remaining steps are the same with the content above
+ Now, you are in the directory of the project. Use qemu to boot the xv6 and do all the tests on it.
+ To compile the project and boot the XV6, run the command:
+```
+$ make qemu-nox
+```
 
  ## Project Content
  
