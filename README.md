@@ -30,18 +30,10 @@ Pull the Docker image
 ```
 docker pull ws7474741/ucr-cs179f
 ```
-Create your own container
+Run your container
 ```
-docker run -it -d ws7474741/cs179f
-```
-Get your container's id
-```
-docker ps
-```
-Enter your own container
-```
-docker exec -it <#your container id> bash
-cd ~
+docker run -it ws7474741/cs179f
+cd ~/swang-ymzhang-CS179F 
 ```
 Now, the remaining steps are the same with the content above
 
