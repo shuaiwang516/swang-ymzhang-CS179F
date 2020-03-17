@@ -13,14 +13,17 @@
 // library system call function. The saved user %esp points
 // to a saved program counter, and then the first argument.
 
+//-------------cs179F--------------//
+//This file is changed to avoid the comparision between addr and sz.
+
 // Fetch the int at addr from the current process.
 int
 fetchint(uint addr, int *ip)
 {
-  struct proc *curproc = myproc();
+  //struct proc *curproc = myproc();
 
-  if(addr >= curproc->sz || addr+4 > curproc->sz)
-    return -1;
+  //if(addr >= curproc->sz || addr+4 > curproc->sz)
+  //  return -1;
   *ip = *(int*)(addr);
   return 0;
 }
@@ -34,10 +37,11 @@ fetchstr(uint addr, char **pp)
   char *s, *ep;
   struct proc *curproc = myproc();
 
-  if(addr >= curproc->sz)
-    return -1;
+  //if(addr >= curproc->sz)
+  //  return -1;
   *pp = (char*)addr;
-  ep = (char*)curproc->sz;
+  //ep = (char*)curproc->sz;
+  ep = (char*)curproc->stackpos;
   for(s = *pp; s < ep; s++){
     if(*s == 0)
       return s - *pp;
@@ -59,11 +63,13 @@ int
 argptr(int n, char **pp, int size)
 {
   int i;
-  struct proc *curproc = myproc();
+  //struct proc *curproc = myproc();
  
   if(argint(n, &i) < 0)
     return -1;
-  if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz)
+  //if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz)
+  //  return -1;
+  if(size < 0)
     return -1;
   *pp = (char*)i;
   return 0;
@@ -107,6 +113,9 @@ extern int sys_uptime(void);
 extern int sys_getNumberOfUnusedPage(void);
 extern int sys_forkCoW(void);
 extern int sys_mmap(void);
+extern int sys_getstackpos(void);
+extern int sys_getheappos(void);
+extern int sys_getstackpg(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -134,6 +143,9 @@ static int (*syscalls[])(void) = {
 [SYS_getNumberOfUnusedPage]  sys_getNumberOfUnusedPage,
 [SYS_forkCoW] sys_forkCoW,
 [SYS_mmap]    sys_mmap,
+[SYS_getstackpos] sys_getstackpos,
+[SYS_getheappos]  sys_getheappos,
+[SYS_getstackpg]  sys_getstackpg,
 };
 
 void

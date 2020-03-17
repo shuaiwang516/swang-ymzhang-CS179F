@@ -6,6 +6,9 @@ struct rtcdate;
 int getNumberOfUnusedPage(void);
 int forkCoW(void);
 char* mmap(int);
+int getstackpos(void);
+int getheappos(void);
+int getstackpg(void);
 
 int fork(void);
 int exit(void) __attribute__((noreturn));

@@ -7,6 +7,10 @@
 #include "x86.h"
 #include "elf.h"
 
+//----------------------cs179F----------//
+#include "date.h"
+#include "rand.h"
+
 int
 exec(char *path, char **argv)
 {
@@ -18,6 +22,10 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
+  //--------------cs179F---------------//
+  int stackpos;
+  struct rtcdate *r = 0;
+  int heappos;
 
   begin_op();
 
@@ -64,11 +72,26 @@ exec(char *path, char **argv)
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
-  sz = PGROUNDUP(sz);
+  /*sz = PGROUNDUP(sz);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
-  sp = sz;
+  sp = sz;*/
+
+  //----------------cs179F--------------//
+  cmostime(r);
+  srand(r->second);
+  stackpos = rand()*0x8001;
+  while(stackpos <= sz + 2*PGSIZE)
+    stackpos = rand()*0x8001;
+  stackpos = PGROUNDUP(stackpos);
+  if((sp = allocuvm(pgdir, stackpos - PGSIZE, stackpos)) == 0)
+    goto bad;
+ 
+  heappos = rand()*0x8001;
+  while(heappos <= sz || (heappos >= stackpos - PGSIZE && heappos <= stackpos + PGSIZE))
+    heappos = rand()*0x8001;
+  heappos = PGROUNDDOWN(heappos); 
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
@@ -101,6 +124,10 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
+  //-----------------cs179F-------------//
+  curproc->stackpos = stackpos;
+  curproc->stackpg = 1;
+  curproc->heappos = heappos;
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;

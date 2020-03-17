@@ -24,3 +24,6 @@
 #define SYS_getNumberOfUnusedPage 22
 #define SYS_forkCoW 23
 #define SYS_mmap   24
+#define SYS_getstackpos  25
+#define SYS_getheappos  26
+#define SYS_getstackpg  27

@@ -26,6 +26,24 @@ sys_forkCoW(void)
   return forkCoW();
 }
 
+int
+sys_getstackpos(void)
+{
+  return myproc()->stackpos;
+}
+
+int
+sys_getheappos(void)
+{
+  return myproc()->heappos;
+}
+
+int
+sys_getstackpg(void)
+{
+  return myproc()->stackpg;
+}
+
 //--------------cs179F------------//
 int
 sys_mmap(void)
