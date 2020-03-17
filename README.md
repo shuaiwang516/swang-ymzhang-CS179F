@@ -29,9 +29,9 @@ $ make qemu-nox
  Now, XV6 has booted. You can do all the tests on it.
  
  ### Setup on your own machine (Not Recommended)
- Firstly following [here](https://www.cs.ucr.edu/~csong/cs153/19f/xv6.html#getting-started-vm) to setup your own machine.
+ First following [here](https://www.cs.ucr.edu/~csong/cs153/19f/xv6.html#getting-started-vm) to setup your own machine.
  
- Secondly use Git to clone all the code to your own machine: 
+ Second use Git to clone all the code to your own machine: 
  ```
  $ git clone https://github.com/ws7474741/swang-ymzhang-CS179F.git
  $ cd swang-ymzhang-CS179F 
