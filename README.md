@@ -87,5 +87,9 @@ $ cowtest
   ```
  $ aslrtest <# an integer number >
   ```
+  For example:
+  ```
+ $ aslrtest 100
+  ```
  The test program will not only show the random position of the stack and the heap but also
  show the sum from 1 to the number you input. The number of stack pages will also be shown after that.
