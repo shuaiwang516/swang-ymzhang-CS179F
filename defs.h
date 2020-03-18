@@ -65,6 +65,7 @@ void            ioapicinit(void);
 
 // kalloc.c
 // ------------cs179F-------------//
+// getNumberofUnusedPage would return the number of unused pages.
 int 		getNumberOfUnusedPage(void);
 char*           kalloc(void);
 void            kfree(char*);
@@ -107,6 +108,7 @@ int             pipewrite(struct pipe*, char*, int);
 // proc.c
 
 //------------cs179F--------------//
+//this is the copy-on-write system call
 int		forkCoW(void);
 
 int             cpuid(void);
@@ -178,6 +180,9 @@ void            uartputc(int);
 
 // vm.c
 //---------------cs179F----------------//
+//this is the copy-on-write sub-funtion
+//point child and parent process to the
+//same page.
 pde_t*		copyuvmCoW(pde_t*, uint);
 void            seginit(void);
 void            kvmalloc(void);
@@ -194,7 +199,9 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 //------------cs179F------------//
+//this is mmap system call
 int             mmap(int fd,struct file *f);
+//this is page fault handler function 
 void 		pgfHandler(void);
 
 //-----------cs179F------------//

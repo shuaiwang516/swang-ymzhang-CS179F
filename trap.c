@@ -79,6 +79,7 @@ trap(struct trapframe *tf)
     break;
 
   //----------cs179F------------//
+  //call page fault handler when we got a page fault
   case T_PGFLT:
     pgfHandler();
     break;

@@ -90,6 +90,7 @@ found:
   p->pid = nextpid++;
 
 //-----------cs179F------------//
+//Initialize the flags about mmap
   p->mfileIndex = 0;
   p->mmapSz = 0;  
   p->nextmmapAddr = MMAPBASE;
@@ -231,6 +232,13 @@ fork(void)
 
 
 //--------------cs179F-----------------//
+//copy-on-write system call
+//very similar with normal fork() function
+//But we use copyuvmCoW instead of copyuvm
+//So we don't actually allocate a new page 
+//for the child,
+//We simply point the child and parent process
+//to the same page.
 int
 forkCoW(void)
 {

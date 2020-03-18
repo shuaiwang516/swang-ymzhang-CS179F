@@ -357,7 +357,7 @@ copyuvm(pde_t *pgdir, uint sz)
 {
   pde_t *d;
   pte_t *pte; 
-  uint pa, i;// flags;
+  uint pa, i;
   char *mem;
 
   if((d = setupkvm()) == 0)
@@ -366,22 +366,19 @@ copyuvm(pde_t *pgdir, uint sz)
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
     pa = PTE_ADDR(*pte);
-    //flags = PTE_FLAGS(*pte); 
+
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
     if((mem = kalloc()) == 0)
       goto bad;
     memmove(mem, (char*)P2V(pa), PGSIZE);
    
-    //-------------cs179-------------//
-    //This flag sets : PTE_W|PTE_U to prevent parent flag unwritable.
     if(mappages(d, (void*)i, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0) {
       kfree(mem);
       goto bad;
     }
   }
 
-  //---------------cs179F-----------------//
   for(i = myproc()->stackpos - myproc()->stackpg*PGSIZE; i < myproc()->stackpos; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -404,8 +401,12 @@ bad:
 }
 
 //-------------cs179F-----------------//
-// Given a parent process's page table, create a copy
-// of it for a child.
+// Given a parent process's page table, create a copy of it for a child.
+// But this is a copy on write version of fork.
+// We make child process and parent process point to the same page and
+// set this page unwritable.
+// We only allocate a page to the child process when one of the processes
+// try to change the page.
 pde_t*
 copyuvmCoW(pde_t *pgdir, uint sz)
 {
@@ -513,7 +514,9 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 }
 
 //--------------cs179F-----------------//
-//Copy on Write page fault handler
+//Page fault handelr
+//1.Handle copy on write page fault
+//2.Handle mmap page fault
 void
 pgfHandler(void)
 {
@@ -534,8 +537,9 @@ pgfHandler(void)
   
   pte = walkpgdir(curproc->pgdir, (void*)va, 0);
   //cprintf("for test, in pgf pte = %d\n",pte);
+ 
   //Search PTE in pgdir
-  //So if PTE not exist means we may caused by mmap()
+  //So if PTE not exist or pte value = 0 means we may caused by mmap()
   if(!pte || *pte == 0)
   {
     if(va < MMAPBASE){
@@ -608,7 +612,7 @@ pgfHandler(void)
   }                  
   
 
-  //CoW Page Fault
+  //CoW Page Fault, write to a read-only page.
   else if(pte && (!(*pte & PTE_W)))
   {
     //cprintf("In cow pte = %d\n",pte);
@@ -616,6 +620,7 @@ pgfHandler(void)
     //cprintf("pte flags = %d\n",*pte & PTE_W & PTE_U & PTE_P);
     pa = PTE_ADDR(*pte);
     acquire(&pcounter.plock);
+
     //Only one ref to this page
     if(pcounter.refCount[pa>>12] == 1)
     {
@@ -675,6 +680,9 @@ pgfHandler(void)
 }
 
 //-----------cs179F-------------//
+//mmap system call for user to map a file into memory.
+//This is a lazy allocatio.
+//Only allocate memory when the user try to access the file content.
 int
 mmap(int fd, struct file *f){
   struct proc *curproc = myproc();
@@ -683,6 +691,7 @@ mmap(int fd, struct file *f){
   uint startAddr = mPointer;
   uint endAddr;
 
+  //update record informations
   curproc->mfile[curproc->mfileIndex]->fileStartAddr = startAddr;
   endAddr = curproc->mfile[curproc->mfileIndex]->fileStartAddr + f->ip->size;
   curproc->mfile[curproc->mfileIndex]->fileEndAddr =  PGROUNDUP(endAddr) - 1;
