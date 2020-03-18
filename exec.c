@@ -8,8 +8,8 @@
 #include "elf.h"
 
 //----------------------cs179F----------//
-#include "date.h"
-#include "rand.h"
+#include "date.h"    // head file to get the current second time as the seed of the random function
+#include "rand.h"    // head file of the random function
 
 int
 exec(char *path, char **argv)
@@ -23,9 +23,9 @@ exec(char *path, char **argv)
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
   //--------------cs179F---------------//
-  int stackpos;
-  struct rtcdate *r = 0;
-  int heappos;
+  int stackpos;   // stack position
+  struct rtcdate *r = 0;   // current time
+  int heappos;   // heap position
 
   begin_op();
 
@@ -79,16 +79,18 @@ exec(char *path, char **argv)
   sp = sz;*/
 
   //----------------cs179F--------------//
+  // randomlize the stack
   cmostime(r);
-  srand(r->second);
-  stackpos = rand()*0x8001;
-  while(stackpos <= sz + 2*PGSIZE)
+  srand(r->second);   // Yield the random number as the base position of the stack
+  stackpos = rand()*0x8001;   // Make the number between 0 to 0x40000000
+  while(stackpos <= sz + 2*PGSIZE)   // If the base position overlap with other part, yield another one.
     stackpos = rand()*0x8001;
   stackpos = PGROUNDUP(stackpos);
-  if((sp = allocuvm(pgdir, stackpos - PGSIZE, stackpos)) == 0)
+  if((sp = allocuvm(pgdir, stackpos - PGSIZE, stackpos)) == 0)   // Allocate user space for the stack
     goto bad;
  
-  heappos = rand()*0x8001;
+  // randomlize the heap
+  heappos = rand()*0x8001;   
   while(heappos <= sz || (heappos >= stackpos - PGSIZE && heappos <= stackpos + PGSIZE))
     heappos = rand()*0x8001;
   heappos = PGROUNDDOWN(heappos); 
@@ -125,6 +127,7 @@ exec(char *path, char **argv)
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
   //-----------------cs179F-------------//
+  // push all the variable into the process structure
   curproc->stackpos = stackpos;
   curproc->stackpg = 1;
   curproc->heappos = heappos;

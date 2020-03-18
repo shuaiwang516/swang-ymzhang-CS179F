@@ -26,18 +26,21 @@ sys_forkCoW(void)
   return forkCoW();
 }
 
+// Get the current stack's position
 int
 sys_getstackpos(void)
 {
   return myproc()->stackpos;
 }
 
+// Get the current heap's position
 int
 sys_getheappos(void)
 {
   return myproc()->heappos;
 }
 
+// Get the number of current stack's pages
 int
 sys_getstackpg(void)
 {

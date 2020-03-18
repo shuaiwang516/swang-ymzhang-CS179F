@@ -379,6 +379,8 @@ copyuvm(pde_t *pgdir, uint sz)
     }
   }
 
+  // Above code is to copy the code and text
+  // The code below is to copy the stack in the virtual address space
   for(i = myproc()->stackpos - myproc()->stackpg*PGSIZE; i < myproc()->stackpos; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -445,7 +447,9 @@ copyuvmCoW(pde_t *pgdir, uint sz)
     pcounter.refCount[pa>>12]++;
     release(&pcounter.plock);
   }
-
+  
+  // Above code is to copy the code and text
+  // The code below is to copy the stack in the virtual address space
   for(i = myproc()->stackpos - myproc()->stackpg*PGSIZE; i < myproc()->stackpos; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -542,10 +546,14 @@ pgfHandler(void)
   //So if PTE not exist or pte value = 0 means we may caused by mmap()
   if(!pte || *pte == 0)
   {
+    // If the stack is growing, the page fault will get into this if sentence
     if(va < MMAPBASE){
+       // Get the stack top
        sp = curproc->stackpos - curproc->stackpg*PGSIZE;
+       // Allocate another page for the growing stack
        if(allocuvm(curproc->pgdir, sp - PGSIZE, sp) == 0)
          panic("No space for the growing stack!");
+       // Number of stack page increase
        curproc->stackpg++;
        return;
     }

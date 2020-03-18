@@ -136,6 +136,7 @@ userinit(void)
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
   //---------------cs179F--------------//
+  // initialize the stack position
   p->stackpos = PGSIZE;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
@@ -205,6 +206,7 @@ fork(void)
   }
   np->sz = curproc->sz;
   //---------------cs179F-----------//
+  // copy the stack position to the child process
   np->stackpos = curproc->stackpos;
   np->parent = curproc;
   *np->tf = *curproc->tf;

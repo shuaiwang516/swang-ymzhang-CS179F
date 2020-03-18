@@ -186,8 +186,8 @@ UPROGS=\
 	_mmaptest\
         _aslrtest\
 
-fs.img: mkfs README CS179F1 CS179F2 $(UPROGS)
-	./mkfs fs.img README CS179F1 CS179F2 $(UPROGS)
+fs.img: mkfs README.md CS179F1 CS179F2 $(UPROGS)
+	./mkfs fs.img README.md CS179F1 CS179F2 $(UPROGS)
 
 -include *.d
 

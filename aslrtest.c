@@ -3,6 +3,7 @@
 
 #pragma GCC push_options
 #pragma GCC optimize ("O0")
+// recursive function to test the growing of the stack
 static int
 recurse(int n)
 {
