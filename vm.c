@@ -698,20 +698,26 @@ mmap(int fd, struct file *f){
   //char *startAddr = (char*) mPointer;
   uint startAddr = mPointer;
   uint endAddr;
+ 
 
   //update record informations
   curproc->mfile[curproc->mfileIndex]->fileStartAddr = startAddr;
   endAddr = curproc->mfile[curproc->mfileIndex]->fileStartAddr + f->ip->size;
+  if(endAddr >= KERNBASE){
+    cprintf("Do not have enough space to mmap the file!!! Process kill!\n");
+    kill(curproc->pid);
+  }
   curproc->mfile[curproc->mfileIndex]->fileEndAddr =  PGROUNDUP(endAddr) - 1;
   curproc->mfile[curproc->mfileIndex]->fd = fd;
   curproc->mfile[curproc->mfileIndex]->f = f;
   curproc->mmapSz = curproc->mmapSz + PGROUNDUP(curproc->mfile[curproc->mfileIndex]->fileEndAddr - curproc->mfile[curproc->mfileIndex]->fileStartAddr);
   curproc->mfileIndex++;
   
+   
  // cprintf("for test, filesize = %d\n",f->ip->size);
  // cprintf("for test, startAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileStartAddr);
  // cprintf("for test, endAddr = %d\n",curproc->mfile[curproc->mfileIndex]->fileEndAddr);
- // cprintf("for test, mmap size = %d\n",curproc->mmapSz);
+ // cprintf("for test, mmap size = %d\n",curproc->mmapSz)i;
   return mPointer;
 }
 
